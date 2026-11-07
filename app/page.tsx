@@ -1,69 +1,121 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ProductCard } from "@/components/product-card";
+import { evergreenProducts, trendingProducts } from "@/lib/catalog";
 
-export default function Home() {
+const uses = [
+  { href: "/packs-and-bags", title: "Packs & Bags", text: "Day packs and slings." },
+  { href: "/camp-and-hike", title: "Camp & Hike", text: "Mug, bottle, light, and a pad." },
+  { href: "/carry", title: "Carry", text: "Pouches for the small things." },
+  { href: "/camp-and-hike?use=field", title: "Light & water", text: "A lantern and something to drink from." },
+  { href: "/fishing", title: "Fishing", text: "Bait, plus hats and shirts." },
+  { href: "/wear", title: "Wear", text: "Hats, shirts, and stone bracelets." },
+];
+
+export default function HomePage() {
+  const trending = trendingProducts();
+  const evergreen = evergreenProducts();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <>
+      <section className="mx-auto grid max-w-6xl items-stretch gap-8 px-4 py-8 md:grid-cols-2 md:py-12">
+        <div className="flex flex-col justify-center">
+          <h1 className="max-w-md font-serif text-5xl leading-[1.05] tracking-tight md:text-6xl">
+            Gear for the day ahead.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <span className="mt-4 block h-0.5 w-12 bg-copper" aria-hidden="true" />
+          <p className="mt-4 max-w-md text-lg text-ink/80">
+            Packs, camp kit, and carry goods for a hike, a truck, and the week between.
           </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/trending" className="bg-pine px-4 py-2.5 text-sm text-stone">
+              Shop trending
+            </Link>
+            <Link href="/guides/day-hike" className="border border-ink px-4 py-2.5 text-sm">
+              Read the guide
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="relative min-h-72 overflow-hidden bg-pine-deep">
+          <Image
+            src="/hero-trail.jpg"
+            alt="A canvas pack resting beside a pine trail in overcast light"
+            fill
+            priority
+            className="object-cover"
+            sizes="(min-width: 768px) 50vw, 100vw"
+          />
         </div>
-      </main>
-    </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-8">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="font-serif text-3xl">New & trending</h2>
+          <Link href="/trending" className="text-sm text-pine underline">
+            All three
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          {trending.map((product) => (
+            <ProductCard key={product.slug} product={product} showTrendNote />
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-8">
+        <h2 className="font-serif text-3xl">Shop by use</h2>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {uses.map((use) => (
+            <Link key={use.href} href={use.href} className="border border-line bg-paper p-5 hover:border-pine">
+              <span className="block font-serif text-2xl">{use.title}</span>
+              <span className="mt-2 block text-sm text-ink/75">{use.text}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:grid-cols-[1.2fr_0.8fr] md:items-center">
+        <div className="border border-line bg-paper p-6 md:p-10">
+          <p className="text-xs uppercase tracking-[0.16em] text-pine">Field note</p>
+          <h2 className="mt-3 font-serif text-4xl leading-tight">What to pack for a day hike</h2>
+          <p className="mt-4 max-w-lg text-ink/80">
+            Water, a layer, and a pouch for the small things. A short list for a trail you will finish before dark.
+          </p>
+          <Link href="/guides/day-hike" className="mt-6 inline-block text-sm text-pine underline">
+            Read the guide
+          </Link>
+        </div>
+        <div>
+          <h2 className="font-serif text-3xl">Always in the kit</h2>
+          <ul className="mt-4 divide-y divide-line border-y border-line">
+            {evergreen.map((product) => (
+              <li key={product.slug}>
+                <Link href={`/products/${product.slug}`} className="flex items-baseline justify-between gap-4 py-3">
+                  <span className="font-serif text-xl">{product.name}</span>
+                  <span className="text-sm">{product.specs[0]?.value}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="border-t border-line">
+        <ul className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-sm sm:grid-cols-3">
+          <li>
+            <p className="font-medium">US warehouse</p>
+            <p className="mt-1 text-ink/75">Live orders will ship from a US warehouse once a supplier is connected.</p>
+          </li>
+          <li>
+            <p className="font-medium">Returns</p>
+            <p className="mt-1 text-ink/75">Unused items can be returned within 30 days of delivery.</p>
+          </li>
+          <li>
+            <p className="font-medium">Measured specs</p>
+            <p className="mt-1 text-ink/75">Figures on these pages are placeholders until a sample is weighed.</p>
+          </li>
+        </ul>
+      </section>
+    </>
   );
 }

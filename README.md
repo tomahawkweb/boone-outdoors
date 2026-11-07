@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Daniel Boone Outdoors
 
-## Getting Started
+Storefront for [danielbooneoutdoors.com](https://danielbooneoutdoors.com). Shoppers browse packs, camp kit, carry goods, fishing, and wear, keep a bag in the browser, and pay with Stripe Checkout.
 
-First, run the development server:
+The assortment in this repo is a sample so the shop can be built. Specs are supplier-sheet placeholders. Measured figures and live shipping replace them before the store opens.
+
+## Stack
+
+- Next.js 16 (App Router) and React 19
+- Tailwind CSS 4
+- Stripe Checkout, with prices taken from the server catalog
+- TypeScript
+
+## Requirements
+
+- Node.js 20 or newer
+- npm
+
+## Run locally
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). If that port is already taken, Next prints the port it bound.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Purpose |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Secret key for Checkout. Use a test key (`sk_test_...`) locally. |
+| `NEXT_PUBLIC_SITE_URL` | Origin used for Checkout success and cancel URLs. Locally this is `http://localhost:3000`. |
 
-## Learn More
+`.env*` files stay out of git. `.env.example` is the template.
 
-To learn more about Next.js, take a look at the following resources:
+Without `STRIPE_SECRET_KEY`, the bag still works. Checkout returns a clear error instead of opening Stripe.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Shop
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Primary navigation:
 
-## Deploy on Vercel
+- `/trending`
+- `/packs-and-bags`
+- `/camp-and-hike`
+- `/carry`
+- `/fishing`
+- `/wear`
+- `/guides`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Also: `/shop`, `/search`, `/bag`, `/about`, `/policies`, and `/products/[slug]`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The bag is stored in `localStorage` under `dbo-bag`. Checkout posts `{ items: [{ slug, quantity }] }` to `/api/checkout`. The route looks each slug up in `lib/catalog.ts` and sends Stripe the catalog price. Quantity must be a whole number from 1 to 9.
+
+After payment, Stripe returns the shopper to `/checkout/success`, which clears the bag.
+
+## Catalog
+
+Products and field guides live in `lib/catalog.ts`. Thirteen sample products and three guides ship with the app. Add a product there and the department pages, search, and product URLs pick it up.
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the local dev server |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | Run ESLint |
+
+## Layout
+
+```
+app/           routes, layout, checkout API, sitemap
+components/    header, footer, bag, product cards
+lib/           catalog, navigation, money formatting
+public/        logo and homepage photograph
+```
+
+Supplier purchasing, Amazon, TikTok Shop, and hosting are outside this repository. This repo is the storefront.
