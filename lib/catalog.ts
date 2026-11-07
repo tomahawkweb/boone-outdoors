@@ -2,6 +2,10 @@ export type DepartmentId = "packs-and-bags" | "camp-and-hike" | "carry" | "fishi
 
 export type ProductUse = "light" | "water" | "bait" | "apparel" | "bracelet";
 
+export type ProductImage = { src: string; alt: string; width: number; height: number };
+export type ProductColor = { name: string; hex: string; image?: ProductImage };
+export type ProductSize = { code: string; label: string };
+
 export type Product = {
   slug: string;
   name: string;
@@ -11,6 +15,9 @@ export type Product = {
   story: string[];
   specs: { label: string; value: string }[];
   uses: ProductUse[];
+  image?: ProductImage;
+  colors?: ProductColor[];
+  sizes?: ProductSize[];
   alsoIn?: DepartmentId[];
   trendingUntil?: string;
   trendingNote?: string;
@@ -233,16 +240,98 @@ export const products: Product[] = [
   {
     slug: "trail-shirt",
     name: "Trail Shirt",
-    priceCents: 3600,
+    priceCents: 4400,
     department: "wear",
     alsoIn: ["fishing"],
-    summary: "A short-sleeve shirt for a warm day outside.",
-    story: ["Meant for the trail and the bank. Sizes run S through XXL once the supplier sheet is confirmed."],
+    summary: "A Gildan 2000 Ultra Cotton shirt with a front print named Crab.",
+    story: [
+      "The blank is a Gildan 2000 Ultra Cotton. Pick a color and a size on this page.",
+      "The front print is named Crab.",
+    ],
     specs: [
-      { label: "Fabric", value: "Cotton blend" },
-      { label: "Sizes", value: "S–XXL" },
+      { label: "Blank", value: "Gildan 2000 Ultra Cotton" },
+      { label: "Print", value: "Crab, front" },
+      { label: "Sizes", value: "S–5XL" },
     ],
     uses: ["apparel"],
+    colors: [
+      {
+        name: "Black",
+        hex: "#171717",
+        image: {
+          src: "/trail-shirt-worn.jpg",
+          alt: "A person wearing the black Trail Shirt with the Crab print",
+          width: 864,
+          height: 1152,
+        },
+      },
+      {
+        name: "White",
+        hex: "#f6f6f6",
+        image: {
+          src: "/trail-shirt-white.jpg",
+          alt: "A person wearing the white Trail Shirt with the Crab print",
+          width: 864,
+          height: 1152,
+        },
+      },
+      {
+        name: "Navy",
+        hex: "#1c203b",
+        image: {
+          src: "/trail-shirt-navy.jpg",
+          alt: "A person wearing the navy Trail Shirt with the Crab print",
+          width: 864,
+          height: 1152,
+        },
+      },
+      {
+        name: "Forest Green",
+        hex: "#14370d",
+        image: {
+          src: "/trail-shirt-forest.jpg",
+          alt: "A person wearing the forest green Trail Shirt with the Crab print",
+          width: 864,
+          height: 1152,
+        },
+      },
+      {
+        name: "Charcoal",
+        hex: "#69696b",
+        image: {
+          src: "/trail-shirt-charcoal.jpg",
+          alt: "A person wearing the charcoal Trail Shirt with the Crab print",
+          width: 864,
+          height: 1152,
+        },
+      },
+      {
+        name: "Sand",
+        hex: "#d1c8b7",
+        image: {
+          src: "/trail-shirt-sand.jpg",
+          alt: "A person wearing the sand Trail Shirt with the Crab print",
+          width: 864,
+          height: 1152,
+        },
+      },
+    ],
+    sizes: [
+      { code: "sml", label: "S" },
+      { code: "med", label: "M" },
+      { code: "lrg", label: "L" },
+      { code: "xlg", label: "XL" },
+      { code: "xxl", label: "2XL" },
+      { code: "xxxl", label: "3XL" },
+      { code: "xxxxl", label: "4XL" },
+      { code: "xxxxxl", label: "5XL" },
+    ],
+    image: {
+      src: "/trail-shirt-worn.jpg",
+      alt: "A person wearing the black Trail Shirt with the Crab print",
+      width: 864,
+      height: 1152,
+    },
   },
   {
     slug: "stone-bracelet",

@@ -1,7 +1,7 @@
 import { productBySlug } from "@/lib/catalog";
 import Stripe from "stripe";
 
-type CheckoutItem = { slug?: string; quantity?: number };
+type CheckoutItem = { slug?: string; quantity?: number; color?: string; size?: string };
 
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_SECRET_KEY;
@@ -28,12 +28,25 @@ export async function POST(request: Request) {
     if (!product || !Number.isInteger(quantity) || quantity < 1 || quantity > 9) {
       return Response.json({ error: "A bag item is not in the catalog." }, { status: 400 });
     }
+    const color = item.color?.trim();
+    const size = item.size?.trim();
+    if (product.colors && !product.colors.some((option) => option.name === color)) {
+      return Response.json({ error: "Choose a color from the list." }, { status: 400 });
+    }
+    if (product.sizes && !product.sizes.some((option) => option.code === size)) {
+      return Response.json({ error: "Choose a size from the list." }, { status: 400 });
+    }
+    const sizeLabel = product.sizes?.find((option) => option.code === size)?.label;
+    const variant = [color, sizeLabel].filter(Boolean).join(" / ");
     lineItems.push({
       quantity,
       price_data: {
         currency: "usd",
         unit_amount: product.priceCents,
-        product_data: { name: product.name, description: product.summary },
+        product_data: {
+          name: variant ? `${product.name} — ${variant}` : product.name,
+          description: product.summary,
+        },
       },
     });
   }

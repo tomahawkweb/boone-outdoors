@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useBag } from "@/components/bag-provider";
+import { bagLineKey, useBag } from "@/components/bag-provider";
 import { productBySlug } from "@/lib/catalog";
 import { formatMoney } from "@/lib/format";
 
@@ -28,7 +28,12 @@ export function BagView() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: detailed.map((item) => ({ slug: item.product.slug, quantity: item.line.quantity })),
+          items: detailed.map((item) => ({
+            slug: item.product.slug,
+            quantity: item.line.quantity,
+            color: item.line.color,
+            size: item.line.size,
+          })),
         }),
       });
       const body = (await response.json()) as { url?: string; error?: string };
@@ -59,11 +64,16 @@ export function BagView() {
     <div>
       <ul className="divide-y divide-line border-y border-line">
         {detailed.map(({ line, product }) => (
-          <li key={product.slug} className="flex flex-wrap items-center gap-4 py-4">
+          <li key={bagLineKey(line)} className="flex flex-wrap items-center gap-4 py-4">
             <div className="min-w-0 flex-1">
               <Link href={`/products/${product.slug}`} className="font-serif text-2xl">
                 {product.name}
               </Link>
+              <p className="text-sm">
+                {[line.color, product.sizes?.find((item) => item.code === line.size)?.label]
+                  .filter(Boolean)
+                  .join(" / ")}
+              </p>
               <p className="text-sm">{formatMoney(product.priceCents)}</p>
             </div>
             <label className="text-sm">
@@ -73,11 +83,11 @@ export function BagView() {
                 min={1}
                 max={9}
                 value={line.quantity}
-                onChange={(event) => setQuantity(product.slug, Number(event.target.value))}
+                onChange={(event) => setQuantity(bagLineKey(line), Number(event.target.value))}
                 className="ml-2 w-16 border border-line bg-paper px-2 py-1"
               />
             </label>
-            <button type="button" onClick={() => remove(product.slug)} className="text-sm underline">
+            <button type="button" onClick={() => remove(bagLineKey(line))} className="text-sm underline">
               Remove
             </button>
           </li>

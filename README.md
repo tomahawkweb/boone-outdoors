@@ -32,6 +32,8 @@ Open [http://localhost:3000](http://localhost:3000). If that port is already tak
 | --- | --- |
 | `STRIPE_SECRET_KEY` | Secret key for Checkout. Use a test key (`sk_test_...`) locally. |
 | `NEXT_PUBLIC_SITE_URL` | Origin used for Checkout success and cancel URLs. Locally this is `http://localhost:3000`. |
+| `SCALABLEPRESS_API_KEY` | Scalable Press test key (`test_...`). Used by the print quote check. |
+| `SCALABLEPRESS_QUOTE_ZIP` | Optional ZIP for that shipping estimate. Defaults to 40507. |
 
 `.env*` files stay out of git. `.env.example` is the template.
 
@@ -54,6 +56,16 @@ Also: `/shop`, `/search`, `/bag`, `/about`, `/policies`, and `/products/[slug]`.
 The bag is stored in `localStorage` under `dbo-bag`. Checkout posts `{ items: [{ slug, quantity }] }` to `/api/checkout`. The route looks each slug up in `lib/catalog.ts` and sends Stripe the catalog price. Quantity must be a whole number from 1 to 9.
 
 After payment, Stripe returns the shopper to `/checkout/success`, which clears the bag.
+
+## Print quotes
+
+Hats and shirts are quoted through Scalable Press before they replace the sample products. The first blanks are a Port & Company C914 unstructured cap and a Gildan 2000 t-shirt, in `lib/print-blanks.ts`.
+
+```bash
+npm run quote:print
+```
+
+The command reads `.env.local` and asks Scalable Press for one cap and one large black shirt, shipped to the quote ZIP. It prints the goods, shipping, and fees next to 30 percent of the current sell price. No artwork is uploaded and no order is placed. A key that starts with `live_` is refused.
 
 ## Catalog
 

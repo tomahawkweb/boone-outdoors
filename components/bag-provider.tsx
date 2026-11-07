@@ -2,14 +2,18 @@
 
 import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 
-export type BagLine = { slug: string; quantity: number };
+export type BagLine = { slug: string; quantity: number; color?: string; size?: string };
+
+export function bagLineKey(line: Pick<BagLine, "slug" | "color" | "size">) {
+  return [line.slug, line.color ?? "", line.size ?? ""].join(":");
+}
 
 type BagContextValue = {
   lines: BagLine[];
   count: number;
-  add: (slug: string, quantity?: number) => void;
-  setQuantity: (slug: string, quantity: number) => void;
-  remove: (slug: string) => void;
+  add: (slug: string, quantity?: number, options?: { color?: string; size?: string }) => void;
+  setQuantity: (key: string, quantity: number) => void;
+  remove: (key: string) => void;
   clear: () => void;
 };
 
@@ -51,26 +55,28 @@ function subscribe(onStoreChange: () => void) {
 export function BagProvider({ children }: { children: React.ReactNode }) {
   const lines = useSyncExternalStore(subscribe, readLines, () => emptyLines);
 
-  const add = useCallback((slug: string, quantity = 1) => {
+  const add = useCallback((slug: string, quantity = 1, options?: { color?: string; size?: string }) => {
     const current = readLines();
-    const existing = current.find((line) => line.slug === slug);
+    const nextLine: BagLine = { slug, quantity, color: options?.color, size: options?.size };
+    const key = bagLineKey(nextLine);
+    const existing = current.find((line) => bagLineKey(line) === key);
     const next = existing
-      ? current.map((line) => (line.slug === slug ? { ...line, quantity: line.quantity + quantity } : line))
-      : [...current, { slug, quantity }];
+      ? current.map((line) => (bagLineKey(line) === key ? { ...line, quantity: line.quantity + quantity } : line))
+      : [...current, nextLine];
     writeLines(next);
   }, []);
 
-  const setQuantity = useCallback((slug: string, quantity: number) => {
+  const setQuantity = useCallback((key: string, quantity: number) => {
     const current = readLines();
     writeLines(
       quantity < 1
-        ? current.filter((line) => line.slug !== slug)
-        : current.map((line) => (line.slug === slug ? { ...line, quantity } : line)),
+        ? current.filter((line) => bagLineKey(line) !== key)
+        : current.map((line) => (bagLineKey(line) === key ? { ...line, quantity } : line)),
     );
   }, []);
 
-  const remove = useCallback((slug: string) => {
-    writeLines(readLines().filter((line) => line.slug !== slug));
+  const remove = useCallback((key: string) => {
+    writeLines(readLines().filter((line) => bagLineKey(line) !== key));
   }, []);
 
   const clear = useCallback(() => writeLines([]), []);
