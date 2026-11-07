@@ -1,15 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { bagLineKey, useBag } from "@/components/bag-provider";
 import { productBySlug } from "@/lib/catalog";
 import { formatMoney } from "@/lib/format";
 
 export function BagView() {
   const { lines, setQuantity, remove } = useBag();
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
 
   const detailed = lines
     .map((line) => {
@@ -19,35 +16,6 @@ export function BagView() {
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
   const total = detailed.reduce((sum, item) => sum + item.product.priceCents * item.line.quantity, 0);
-
-  async function checkout() {
-    setPending(true);
-    setError("");
-    try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: detailed.map((item) => ({
-            slug: item.product.slug,
-            quantity: item.line.quantity,
-            color: item.line.color,
-            size: item.line.size,
-          })),
-        }),
-      });
-      const body = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !body.url) {
-        setError(body.error ?? "Checkout could not start.");
-        setPending(false);
-        return;
-      }
-      window.location.assign(body.url);
-    } catch {
-      setError("Checkout could not start.");
-      setPending(false);
-    }
-  }
 
   if (detailed.length === 0) {
     return (
@@ -94,19 +62,9 @@ export function BagView() {
         ))}
       </ul>
       <p className="mt-6 text-lg">Total {formatMoney(total)}</p>
-      <button
-        type="button"
-        onClick={checkout}
-        disabled={pending}
-        className="mt-4 bg-pine px-5 py-3 text-sm text-stone disabled:opacity-60"
-      >
-        {pending ? "Opening Stripe…" : "Checkout with Stripe"}
-      </button>
-      {error ? (
-        <p className="mt-3 max-w-lg text-sm" role="alert">
-          {error}
-        </p>
-      ) : null}
+      <Link href="/checkout" className="mt-4 inline-block bg-pine px-5 py-3 text-sm text-stone">
+        Checkout
+      </Link>
     </div>
   );
 }

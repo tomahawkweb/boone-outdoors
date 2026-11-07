@@ -35,6 +35,14 @@ export const printBlanks: PrintBlank[] = [
   },
 ];
 
+export function designIdFor(blank: PrintBlank) {
+  if (blank.slug === "trail-shirt") {
+    const override = process.env.SCALABLEPRESS_DESIGN_TRAIL_SHIRT?.trim();
+    if (override) return override;
+  }
+  return blank.designId;
+}
+
 export type PrintQuote = {
   slug: PrintBlank["slug"];
   name: string;
@@ -71,7 +79,7 @@ export async function quotePrintBlanks(): Promise<PrintQuote[]> {
         color: blank.color,
         size: blank.size,
         quantity: 1,
-        designId: blank.designId,
+        designId: designIdFor(blank),
       });
       quotes.push({
         slug: blank.slug,

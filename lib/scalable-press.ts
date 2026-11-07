@@ -2,6 +2,24 @@ const API_URL = "https://api.scalablepress.com/v2";
 
 export type PrintType = "dtg" | "embr";
 
+export type PrintAddress = {
+  name: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  email?: string;
+};
+
+export type QuoteProduct = {
+  id: string;
+  color: string;
+  size: string;
+  quantity: number;
+};
+
 export type QuoteRequest = {
   name: string;
   printType: PrintType;
@@ -10,6 +28,8 @@ export type QuoteRequest = {
   size: string;
   quantity: number;
   designId?: string;
+  products?: QuoteProduct[];
+  address?: PrintAddress;
 };
 
 export type QuoteIssue = {
@@ -31,6 +51,14 @@ export type QuoteResult = {
   orderIssues?: QuoteIssue[];
 };
 
+export type PrintOrder = {
+  orderId?: string;
+  status?: string;
+  mode?: string;
+  total?: number;
+  orderToken?: string;
+};
+
 export class ScalablePressError extends Error {
   status: number;
   body: unknown;
@@ -42,17 +70,54 @@ export class ScalablePressError extends Error {
   }
 }
 
+function envValue(name: string) {
+  const value = process.env[name]?.trim() ?? "";
+  if (!value || value.includes("replace_me")) return "";
+  return value;
+}
+
+function matchingKey(prefix: string, names: string[]) {
+  for (const name of names) {
+    const value = envValue(name);
+    if (value.startsWith(prefix)) return value;
+  }
+  return "";
+}
+
+function scalablePressTestKey() {
+  return matchingKey("test_", ["SCALABLEPRESS_TEST_API_KEY", "SCALABLEPRESS_API_KEY"]);
+}
+
+function scalablePressLiveKey() {
+  return matchingKey("live_", ["SCALABLEPRESS_LIVE_API_KEY", "SCALABLEPRESS_API_KEY"]);
+}
+
+export function scalablePressKeyMode(): "test" | "live" | "missing" {
+  if (process.env.SCALABLEPRESS_ALLOW_LIVE === "1" && scalablePressLiveKey()) return "live";
+  if (scalablePressTestKey()) return "test";
+  if (scalablePressLiveKey()) return "live";
+  return "missing";
+}
+
 export function scalablePressKey() {
-  const key = process.env.SCALABLEPRESS_API_KEY?.trim();
-  if (!key || key === "test_replace_me") {
+  if (process.env.SCALABLEPRESS_ALLOW_LIVE === "1" && scalablePressLiveKey()) return scalablePressLiveKey();
+  if (scalablePressTestKey()) return scalablePressTestKey();
+  if (scalablePressLiveKey()) {
     throw new Error(
-      "Add SCALABLEPRESS_API_KEY to .env.local. Use the test key from the Scalable Press account. It starts with test_.",
+      "The live Scalable Press key can stay in .env.local. Add the test key as SCALABLEPRESS_TEST_API_KEY.",
     );
   }
-  if (key.startsWith("live_") && process.env.SCALABLEPRESS_ALLOW_LIVE !== "1") {
-    throw new Error("That key starts with live_. Put the test_ key in .env.local for a price check.");
-  }
-  return key;
+  throw new Error(
+    "Add SCALABLEPRESS_TEST_API_KEY to .env.local. Use the test key from the Scalable Press account. It starts with test_.",
+  );
+}
+
+function authHeaders(key: string) {
+  return {
+    Authorization: `Basic ${Buffer.from(`:${key}`).toString("base64")}`,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
 }
 
 function quoteAddress() {
@@ -69,26 +134,26 @@ function quoteAddress() {
 export async function createQuote(request: QuoteRequest): Promise<QuoteResult> {
   const key = scalablePressKey();
   const designId = request.designId?.trim();
+  const products =
+    request.products && request.products.length > 0
+      ? request.products
+      : [
+          {
+            id: request.productId,
+            color: request.color,
+            size: request.size,
+            quantity: request.quantity,
+          },
+        ];
   const response = await fetch(`${API_URL}/quote`, {
     method: "POST",
-    headers: {
-      Authorization: `Basic ${Buffer.from(`:${key}`).toString("base64")}`,
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders(key),
     body: JSON.stringify({
       type: request.printType,
       name: request.name,
       ...(designId ? { designId } : { sides: { front: 1 } }),
-      products: [
-        {
-          id: request.productId,
-          color: request.color,
-          size: request.size,
-          quantity: request.quantity,
-        },
-      ],
-      address: quoteAddress(),
+      products,
+      address: request.address ?? quoteAddress(),
     }),
   });
 
@@ -102,4 +167,24 @@ export async function createQuote(request: QuoteRequest): Promise<QuoteResult> {
   }
 
   return (body ?? {}) as QuoteResult;
+}
+
+export async function placeOrder(orderToken: string): Promise<PrintOrder> {
+  const key = scalablePressKey();
+  const response = await fetch(`${API_URL}/order`, {
+    method: "POST",
+    headers: authHeaders(key),
+    body: JSON.stringify({ orderToken }),
+  });
+
+  const body = (await response.json().catch(() => null)) as PrintOrder | { message?: string } | null;
+  if (!response.ok) {
+    const message =
+      body && "message" in body && body.message
+        ? body.message
+        : `Scalable Press returned ${response.status}.`;
+    throw new ScalablePressError(message, response.status, body);
+  }
+
+  return (body ?? {}) as PrintOrder;
 }

@@ -1,15 +1,24 @@
 import { productBySlug } from "@/lib/catalog";
-import Stripe from "stripe";
+import { stripeClient } from "@/lib/stripe";
 
 type CheckoutItem = { slug?: string; quantity?: number; color?: string; size?: string };
 
+function itemsMetadata(items: CheckoutItem[]) {
+  const parts = items
+    .filter((item) => item.slug)
+    .map((item) => [item.slug, item.quantity, item.color ?? "", item.size ?? ""].join("|"));
+  let value = parts.join(",");
+  while (value.length > 500 && parts.length > 1) {
+    parts.pop();
+    value = parts.join(",");
+  }
+  return value.length > 0 && value.length <= 500 ? value : undefined;
+}
+
 export async function POST(request: Request) {
-  const secret = process.env.STRIPE_SECRET_KEY;
-  if (!secret) {
-    return Response.json(
-      { error: "Stripe is not configured yet. Add STRIPE_SECRET_KEY to the environment." },
-      { status: 503 },
-    );
+  const stripe = stripeClient();
+  if ("error" in stripe) {
+    return Response.json({ error: stripe.error }, { status: stripe.status });
   }
 
   let items: CheckoutItem[] = [];
@@ -20,7 +29,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "The bag could not be read." }, { status: 400 });
   }
 
-  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+  const names: string[] = [];
+  let amount = 0;
   for (const item of items) {
     if (!item.slug) continue;
     const product = productBySlug(item.slug);
@@ -38,35 +48,26 @@ export async function POST(request: Request) {
     }
     const sizeLabel = product.sizes?.find((option) => option.code === size)?.label;
     const variant = [color, sizeLabel].filter(Boolean).join(" / ");
-    lineItems.push({
-      quantity,
-      price_data: {
-        currency: "usd",
-        unit_amount: product.priceCents,
-        product_data: {
-          name: variant ? `${product.name} — ${variant}` : product.name,
-          description: product.summary,
-        },
-      },
-    });
+    names.push(variant ? `${product.name} — ${variant}` : product.name);
+    amount += product.priceCents * quantity;
   }
 
-  if (lineItems.length === 0) {
+  if (amount < 1) {
     return Response.json({ error: "Your bag is empty." }, { status: 400 });
   }
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
-  const stripe = new Stripe(secret);
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    line_items: lineItems,
-    success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/bag`,
+  const metadata = itemsMetadata(items);
+  const intent = await stripe.client.paymentIntents.create({
+    amount,
+    currency: "usd",
+    automatic_payment_methods: { enabled: true },
+    description: names.join(", ").slice(0, 1000),
+    ...(metadata ? { metadata: { items: metadata } } : {}),
   });
 
-  if (!session.url) {
-    return Response.json({ error: "Stripe did not return a checkout link." }, { status: 502 });
+  if (!intent.client_secret) {
+    return Response.json({ error: "Stripe did not start the payment." }, { status: 502 });
   }
 
-  return Response.json({ url: session.url });
+  return Response.json({ clientSecret: intent.client_secret, amount });
 }
